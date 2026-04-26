@@ -122,10 +122,12 @@ function run(){
   }
 
   let schemaStr = "<script type=\\"application/ld+json\\">\\n" +
-    JSON.stringify(schema,null,2) +
-    "\\n</script>";
+  JSON.stringify(schema,null,2) +
+  "\\n</script>";
 
-  document.getElementById("out").textContent =
+document.getElementById("out").textContent =
+  "HTML FAQ MỚI:\\n\\n" + html +
+  "\\nSCHEMA:\\n\\n" + schemaStr;
     "HTML FAQ MỚI:\\n\\n" + html +
     "\\nSCHEMA:\\n\\n" + schemaStr;
 }
