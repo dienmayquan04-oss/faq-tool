@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FAQ Tool</title>
+<style>
+body{font-family:Arial;padding:20px;max-width:900px;margin:auto}
+textarea,input{width:100%;margin:10px 0;padding:10px}
+button{padding:10px 15px;margin:5px}
+.output{background:#111;color:#0f0;padding:15px;white-space:pre-wrap;margin-top:20px}
+</style>
+</head>
+
+<body>
+
+<h2>FAQ + Schema Tool</h2>
+
+<input id="brand" placeholder="Brand Entity">
+<input id="product" placeholder="Tên sản phẩm">
+
+<textarea id="faq" rows="10" placeholder="1. Câu hỏi?
+Trả lời"></textarea>
+
+<button onclick="run()">Generate</button>
+<button onclick="copyHTML()">Copy HTML</button>
+<button onclick="copySchema()">Copy Schema</button>
+
+<div class="output" id="out"></div>
+
+<script>
+let htmlResult="", schemaResult="";
+
+function parseFAQ(text){
+  let lines=text.split("\\n"), faqs=[],q="",a="";
+  for(let line of lines){
+    line=line.trim();
+    if(line.includes("?")){
+      if(q&&a) faqs.push({q,a});
+      q=line.replace(/^\\d+\\.\\s*/,"");
+      a="";
+    }else if(line){
+      a+=line+" ";
+    }
+  }
+  if(q&&a) faqs.push({q,a});
+  return faqs;
+}
+
+function run(){
+  let brand=document.getElementById("brand").value;
+  let product=document.getElementById("product").value;
+  let source=parseFAQ(document.getElementById("faq").value);
+
+  let gen=[
+    {q:product+" có đáng mua không?",a:"Đây là lựa chọn đáng cân nhắc."},
+    {q:"Mua "+product+" ở đâu uy tín?",a:"Mua tại "+brand+" để đảm bảo chính hãng."}
+  ];
+
+  htmlResult="";
+  gen.forEach(f=>{
+    htmlResult+=`<div class="faq-generated">
+<h4><strong>${f.q}</strong></h4>
+<p>${f.a}</p>
+</div>\n`;
+  });
+
+  let schema={
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[]
+  };
+
+  source.concat(gen).forEach(f=>{
+    schema.mainEntity.push({
+      "@type":"Question",
+      "name":f.q,
+      "acceptedAnswer":{"@type":"Answer","text":f.a}
+    });
+  });
+
+  schemaResult=`<script type="application/ld+json">\n${JSON.stringify(schema,null,2)}\n</script>`;
+
+  document.getElementById("out").textContent=
+  "HTML:\n\n"+htmlResult+"\nSCHEMA:\n\n"+schemaResult;
+}
+
+function copyHTML(){navigator.clipboard.writeText(htmlResult);}
+function copySchema(){navigator.clipboard.writeText(schemaResult);}
+</script>
+
+</body>
+</html>
