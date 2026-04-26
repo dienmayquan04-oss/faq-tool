@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <title>FAQ AEO Tool</title>
+
 <style>
 body{font-family:Arial;padding:20px;max-width:1000px;margin:auto}
 textarea,input{width:100%;margin:10px 0;padding:10px}
 button{padding:10px 15px;margin:5px}
 .output{background:#111;color:#0f0;padding:15px;white-space:pre-wrap;margin-top:20px}
 </style>
-</head>
 
+</head>
 <body>
 
 <h2>FAQ + Schema (AEO SAFE)</h2>
@@ -29,106 +30,105 @@ Trả lời"></textarea>
 <div class="output" id="out"></div>
 
 <script>
-function parseFAQ(text){
-  let lines = text.split("\\n");
-  let faqs = [];
-  let q = "", a = "";
 
-  for(let i=0;i<lines.length;i++){
-    let line = lines[i].trim();
+// ===== PARSE FAQ CŨ (GIỮ NGUYÊN) =====
+function parseFAQ(text){
+  const lines = text.split("\n");
+  const faqs = [];
+  let q="", a="";
+
+  for(let line of lines){
+    line=line.trim();
+
     if(line.includes("?")){
-      if(q && a){
-        faqs.push({q:q,a:a});
-      }
-      q = line.replace(/^\\d+\\.\\s*/, "");
-      a = "";
-    } else if(line){
+      if(q && a) faqs.push({q,a});
+      q=line.replace(/^\d+\.\s*/,"");
+      a="";
+    } 
+    else if(line){
       a += line + " ";
     }
   }
 
-  if(q && a){
-    faqs.push({q:q,a:a});
-  }
-
+  if(q && a) faqs.push({q,a});
   return faqs;
 }
 
+
+// ===== MAIN =====
 function run(){
-  let brand = document.getElementById("brand").value;
-  let product = document.getElementById("product").value;
-  let spec = document.getElementById("spec").value;
-  let raw = document.getElementById("faq").value;
 
-  let source = parseFAQ(raw);
+  const brand = document.getElementById("brand").value.trim();
+  const product = document.getElementById("product").value.trim();
+  const spec = document.getElementById("spec").value.trim();
+  const raw = document.getElementById("faq").value;
 
-  let gen = [
+  const source = parseFAQ(raw);
+
+  // ===== FAQ MỚI (ĐÚNG RULE) =====
+  const gen = [
     {
-      q: product + " có đáng mua không?",
-      a: product + " là lựa chọn đáng cân nhắc nhờ " + spec
+      q: `${product} có đáng mua không?`,
+      a: `${product} là lựa chọn đáng cân nhắc nhờ ${spec}`
     },
     {
-      q: product + " có phù hợp phòng khách không?",
-      a: "Phù hợp với không gian phòng khách nhờ thiết kế và kích thước tối ưu."
+      q: `${product} có phù hợp phòng khách không?`,
+      a: `Phù hợp với không gian phòng khách nhờ thiết kế và kích thước tối ưu.`
     },
     {
-      q: product + " hoạt động có mượt không?",
-      a: "Thiết bị xử lý ổn định, đáp ứng tốt nhu cầu giải trí phổ biến."
+      q: `${product} hoạt động có mượt không?`,
+      a: `Thiết bị hoạt động ổn định, đáp ứng tốt nhu cầu giải trí phổ biến.`
     },
     {
-      q: product + " có gì nổi bật so với cùng phân khúc?",
-      a: "Sản phẩm nổi bật nhờ công nghệ hiển thị và trải nghiệm người dùng."
+      q: `${product} có gì nổi bật so với cùng phân khúc?`,
+      a: `Sản phẩm nổi bật nhờ công nghệ và trải nghiệm sử dụng.`
     },
     {
-      q: "Mua " + product + " ở đâu uy tín?",
-      a: "Bạn có thể mua " + product + " chính hãng tại " + brand + " để đảm bảo giá tốt và bảo hành đầy đủ."
+      q: `Mua ${product} ở đâu uy tín?`,
+      a: `Bạn có thể mua ${product} chính hãng tại ${brand} để đảm bảo giá tốt và bảo hành đầy đủ.`
     }
   ];
 
-  let html = "";
-  for(let i=0;i<gen.length;i++){
-    html += "<div class=\\"faq-generated\\">\\n";
-    html += "<h4><strong>" + gen[i].q + "</strong></h4>\\n";
-    html += "<p>" + gen[i].a + "</p>\\n";
-    html += "</div>\\n";
-  }
+  // ===== HTML FAQ MỚI =====
+  const html = gen.map(f => `
+<div class="faq-generated">
+  <h4><strong>${f.q}</strong></h4>
+  <p>${f.a}</p>
+</div>`).join("");
 
-  let schema = {
-    "@context":"https://schema.org",
-    "@type":"FAQPage",
-    "mainEntity":[]
+
+  // ===== SCHEMA =====
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [...source, ...gen].map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": f.a
+      }
+    }))
   };
 
-  for(let i=0;i<source.length;i++){
-    schema.mainEntity.push({
-      "@type":"Question",
-      "name":source[i].q,
-      "acceptedAnswer":{
-        "@type":"Answer",
-        "text":source[i].a
-      }
-    });
-  }
 
-  for(let i=0;i<gen.length;i++){
-    schema.mainEntity.push({
-      "@type":"Question",
-      "name":gen[i].q,
-      "acceptedAnswer":{
-        "@type":"Answer",
-        "text":gen[i].a
-      }
-    });
-  }
+  const schemaStr = `<script type="application/ld+json">
+${JSON.stringify(schema, null, 2)}
+</script>`;
 
-  let schemaStr = "<script type=\\"application/ld+json\\">\\n" +
-  JSON.stringify(schema,null,2) +
-  "\\n</script>";
 
-document.getElementById("out").textContent =
-  "HTML FAQ MỚI:\\n\\n" + html +
-  "\\nSCHEMA:\\n\\n" + schemaStr;
+  // ===== OUTPUT =====
+  document.getElementById("out").textContent =
+`HTML FAQ MỚI:
+
+${html}
+
+SCHEMA:
+
+${schemaStr}`;
+
 }
+
 </script>
 
 </body>
