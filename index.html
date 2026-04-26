@@ -2,9 +2,9 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>FAQ Tool</title>
+<title>FAQ AEO Tool</title>
 <style>
-body{font-family:Arial;padding:20px;max-width:900px;margin:auto}
+body{font-family:Arial;padding:20px;max-width:1000px;margin:auto}
 textarea,input{width:100%;margin:10px 0;padding:10px}
 button{padding:10px 15px;margin:5px}
 .output{background:#111;color:#0f0;padding:15px;white-space:pre-wrap;margin-top:20px}
@@ -13,30 +13,29 @@ button{padding:10px 15px;margin:5px}
 
 <body>
 
-<h2>FAQ + Schema Tool</h2>
+<h2>FAQ + Schema (AEO SAFE)</h2>
 
 <input id="brand" placeholder="Brand Entity">
 <input id="product" placeholder="Tên sản phẩm">
 
-<textarea id="faq" rows="10" placeholder="1. Câu hỏi?
+<textarea id="spec" rows="4" placeholder="Đặc tính sản phẩm (SPEC)"></textarea>
+
+<textarea id="faq" rows="10" placeholder="FAQ hiện có (giữ nguyên):
+1. Câu hỏi?
 Trả lời"></textarea>
 
 <button onclick="run()">Generate</button>
-<button onclick="copyHTML()">Copy HTML</button>
-<button onclick="copySchema()">Copy Schema</button>
 
 <div class="output" id="out"></div>
 
 <script>
-let htmlResult="", schemaResult="";
-
 function parseFAQ(text){
-  let lines=text.split("\\n"), faqs=[],q="",a="";
+  let lines=text.split("\n"),faqs=[],q="",a="";
   for(let line of lines){
     line=line.trim();
     if(line.includes("?")){
       if(q&&a) faqs.push({q,a});
-      q=line.replace(/^\\d+\\.\\s*/,"");
+      q=line.replace(/^\d+\.\s*/,"");
       a="";
     }else if(line){
       a+=line+" ";
@@ -47,30 +46,52 @@ function parseFAQ(text){
 }
 
 function run(){
-  let brand=document.getElementById("brand").value;
-  let product=document.getElementById("product").value;
-  let source=parseFAQ(document.getElementById("faq").value);
+  let brand=brand.value;
+  let product=product.value;
+  let spec=spec.value;
+  let source=parseFAQ(faq.value);
 
+  // 👉 FAQ mới chuẩn intent + spec
   let gen=[
-    {q:product+" có đáng mua không?",a:"Đây là lựa chọn đáng cân nhắc."},
-    {q:"Mua "+product+" ở đâu uy tín?",a:"Mua tại "+brand+" để đảm bảo chính hãng."}
+    {
+      q: product+" có đáng mua không?",
+      a: product+" là lựa chọn đáng cân nhắc nhờ "+spec
+    },
+    {
+      q: product+" có phù hợp phòng khách không?",
+      a: "Phù hợp với không gian phòng khách nhờ thiết kế và kích thước tối ưu."
+    },
+    {
+      q: product+" hoạt động có mượt không?",
+      a: "Thiết bị xử lý ổn định, đáp ứng tốt nhu cầu giải trí phổ biến."
+    },
+    {
+      q: product+" có gì nổi bật so với cùng phân khúc?",
+      a: "Sản phẩm nổi bật nhờ công nghệ hiển thị và trải nghiệm người dùng."
+    },
+    {
+      q: "Mua "+product+" ở đâu uy tín?",
+      a: "Bạn có thể mua "+product+" chính hãng tại "+brand+" để đảm bảo giá tốt và bảo hành đầy đủ."
+    }
   ];
 
-  htmlResult="";
+  // 👉 HTML chỉ FAQ mới
+  let html="";
   gen.forEach(f=>{
-    htmlResult+=`<div class="faq-generated">
+    html+=`<div class="faq-generated">
 <h4><strong>${f.q}</strong></h4>
 <p>${f.a}</p>
 </div>\n`;
   });
 
+  // 👉 Schema = FAQ cũ + mới
   let schema={
     "@context":"https://schema.org",
     "@type":"FAQPage",
     "mainEntity":[]
   };
 
-  source.concat(gen).forEach(f=>{
+  source.forEach(f=>{
     schema.mainEntity.push({
       "@type":"Question",
       "name":f.q,
@@ -78,14 +99,20 @@ function run(){
     });
   });
 
-  schemaResult=`<script type="application/ld+json">\n${JSON.stringify(schema,null,2)}\n</script>`;
+  gen.forEach(f=>{
+    schema.mainEntity.push({
+      "@type":"Question",
+      "name":f.q,
+      "acceptedAnswer":{"@type":"Answer","text":f.a}
+    });
+  });
 
-  document.getElementById("out").textContent=
-  "HTML:\n\n"+htmlResult+"\nSCHEMA:\n\n"+schemaResult;
+  let schemaStr=`<script type="application/ld+json">\n${JSON.stringify(schema,null,2)}\n</script>`;
+
+  out.textContent=
+  "HTML FAQ MỚI:\n\n"+html+
+  "\nSCHEMA:\n\n"+schemaStr;
 }
-
-function copyHTML(){navigator.clipboard.writeText(htmlResult);}
-function copySchema(){navigator.clipboard.writeText(schemaResult);}
 </script>
 
 </body>
