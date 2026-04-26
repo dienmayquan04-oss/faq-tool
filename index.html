@@ -2,130 +2,103 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>FAQ AEO Tool</title>
+<title>FAQ Tool</title>
 
 <style>
-body{font-family:Arial;padding:20px;max-width:1000px;margin:auto}
+body{font-family:Arial;padding:20px;max-width:900px;margin:auto}
 textarea,input{width:100%;margin:10px 0;padding:10px}
-button{padding:10px 15px;margin:5px}
+button{padding:10px 15px}
 .output{background:#111;color:#0f0;padding:15px;white-space:pre-wrap;margin-top:20px}
 </style>
 
 </head>
 <body>
 
-<h2>FAQ + Schema (AEO SAFE)</h2>
+<h2>FAQ + Schema</h2>
 
-<input id="brand" placeholder="Brand Entity">
-<input id="product" placeholder="Tên sản phẩm">
+<input id="brand" placeholder="Brand">
+<input id="product" placeholder="Product">
 
-<textarea id="spec" rows="4" placeholder="Đặc tính sản phẩm"></textarea>
+<textarea id="spec" rows="3" placeholder="Spec"></textarea>
 
-<textarea id="faq" rows="10" placeholder="FAQ hiện có:
+<textarea id="faq" rows="8" placeholder="FAQ:
 1. Câu hỏi?
 Trả lời"></textarea>
 
 <button onclick="run()">Generate</button>
 
-<div class="output" id="out"></div>
+<div id="out" class="output"></div>
 
 <script>
 
-// ===== PARSE FAQ CŨ (GIỮ NGUYÊN) =====
 function parseFAQ(text){
   const lines = text.split("\n");
-  const faqs = [];
-  let q="", a="";
+  const faqs=[];
+  let q="",a="";
 
-  for(let line of lines){
+  lines.forEach(line=>{
     line=line.trim();
-
     if(line.includes("?")){
       if(q && a) faqs.push({q,a});
       q=line.replace(/^\d+\.\s*/,"");
       a="";
-    } 
-    else if(line){
-      a += line + " ";
+    }else if(line){
+      a+=line+" ";
     }
-  }
+  });
 
   if(q && a) faqs.push({q,a});
   return faqs;
 }
 
-
-// ===== MAIN =====
 function run(){
 
-  const brand = document.getElementById("brand").value.trim();
-  const product = document.getElementById("product").value.trim();
-  const spec = document.getElementById("spec").value.trim();
-  const raw = document.getElementById("faq").value;
+  const brand=document.getElementById("brand").value;
+  const product=document.getElementById("product").value;
+  const spec=document.getElementById("spec").value;
+  const raw=document.getElementById("faq").value;
 
-  const source = parseFAQ(raw);
+  const source=parseFAQ(raw);
 
-  // ===== FAQ MỚI (ĐÚNG RULE) =====
-  const gen = [
-    {
-      q: `${product} có đáng mua không?`,
-      a: `${product} là lựa chọn đáng cân nhắc nhờ ${spec}`
-    },
-    {
-      q: `${product} có phù hợp phòng khách không?`,
-      a: `Phù hợp với không gian phòng khách nhờ thiết kế và kích thước tối ưu.`
-    },
-    {
-      q: `${product} hoạt động có mượt không?`,
-      a: `Thiết bị hoạt động ổn định, đáp ứng tốt nhu cầu giải trí phổ biến.`
-    },
-    {
-      q: `${product} có gì nổi bật so với cùng phân khúc?`,
-      a: `Sản phẩm nổi bật nhờ công nghệ và trải nghiệm sử dụng.`
-    },
-    {
-      q: `Mua ${product} ở đâu uy tín?`,
-      a: `Bạn có thể mua ${product} chính hãng tại ${brand} để đảm bảo giá tốt và bảo hành đầy đủ.`
-    }
+  const gen=[
+    {q: product+" có đáng mua không?", a: product+" đáng cân nhắc nhờ "+spec},
+    {q: product+" có phù hợp phòng khách không?", a:"Phù hợp không gian phòng khách."},
+    {q: product+" chạy có mượt không?", a:"Hoạt động ổn định."},
+    {q: product+" có gì nổi bật?", a:"Có công nghệ nổi bật trong phân khúc."},
+    {q: "Mua "+product+" ở đâu uy tín?", a:"Mua tại "+brand+" để đảm bảo chính hãng."}
   ];
 
-  // ===== HTML FAQ MỚI =====
-  const html = gen.map(f => `
-<div class="faq-generated">
-  <h4><strong>${f.q}</strong></h4>
-  <p>${f.a}</p>
-</div>`).join("");
+  let html="";
+  gen.forEach(f=>{
+    html+=`<div class="faq-generated">
+<h4><strong>${f.q}</strong></h4>
+<p>${f.a}</p>
+</div>\n`;
+  });
 
-
-  // ===== SCHEMA =====
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [...source, ...gen].map(f => ({
-      "@type": "Question",
-      "name": f.q,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": f.a
-      }
-    }))
+  const schema={
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[]
   };
 
+  [...source,...gen].forEach(f=>{
+    schema.mainEntity.push({
+      "@type":"Question",
+      "name":f.q,
+      "acceptedAnswer":{
+        "@type":"Answer",
+        "text":f.a
+      }
+    });
+  });
 
-  const schemaStr = `<script type="application/ld+json">
-${JSON.stringify(schema, null, 2)}
+  const schemaStr=`<script type="application/ld+json">
+${JSON.stringify(schema,null,2)}
 </script>`;
 
-
-  // ===== OUTPUT =====
   document.getElementById("out").textContent =
-`HTML FAQ MỚI:
-
-${html}
-
-SCHEMA:
-
-${schemaStr}`;
+    "HTML FAQ MỚI:\n\n"+html+"\nSCHEMA:\n\n"+schemaStr;
 
 }
 
